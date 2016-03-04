@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/org.eclipse.cdt.launch.remote.direct.feature_1.0.1.201603041853.jar" id="org.eclipse.cdt.launch.remote.direct.feature" version="1.0.1.201603041853">
+      <category name="mazong1123"/>
+   </feature>
+   <category-def name="mazong1123" label="mazong1123"/>
+</site>

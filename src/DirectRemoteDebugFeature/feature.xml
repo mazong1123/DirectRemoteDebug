@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="org.eclipse.cdt.launch.remote.direct.feature"
+      label="Direct Remote Debug (C/C++)"
+      version="1.0.1.qualifier"
+      provider-name="mazong1123">
+
+   <description url="http://www.mazong1123.com">
+      MIT License.
+   </description>
+
+   <copyright url="http://www.mazong1123.com">
+      MIT License.
+   </copyright>
+
+   <license url="http://www.mazong1123.com">
+      MIT License.
+   </license>
+
+   <plugin
+         id="org.eclipse.cdt.launch.remote.direct"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+</feature>

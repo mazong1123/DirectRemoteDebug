@@ -3,6 +3,7 @@ package org.eclipse.cdt.launch.remote.direct;
 import java.util.concurrent.RejectedExecutionException;
 
 import org.eclipse.cdt.core.model.ICProject;
+import org.eclipse.cdt.debug.core.CDebugUtils;
 import org.eclipse.cdt.debug.core.ICDTLaunchConfigurationConstants;
 import org.eclipse.cdt.debug.core.sourcelookup.MappingSourceContainer;
 import org.eclipse.cdt.debug.internal.core.sourcelookup.MapEntrySourceContainer;
@@ -16,6 +17,7 @@ import org.eclipse.cdt.dsf.gdb.launching.LaunchUtils;
 import org.eclipse.cdt.dsf.service.DsfSession;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Assert;
@@ -31,6 +33,8 @@ import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.model.ISourceLocator;
 import org.eclipse.debug.core.sourcelookup.ISourceContainer;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.rse.core.RSECorePlugin;
 import org.eclipse.rse.core.subsystems.ISubSystem;
@@ -42,7 +46,11 @@ import org.eclipse.rse.services.shells.IHostShell;
 import org.eclipse.rse.services.shells.IHostShellChangeEvent;
 import org.eclipse.rse.services.shells.IHostShellOutputListener;
 import org.eclipse.rse.services.shells.IHostShellOutputReader;
+import org.eclipse.ui.ISelectionService;
+import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PlatformUI;
 
 public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 	private String version = ""; //$NON-NLS-1$
@@ -58,7 +66,7 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 			super();
 		}
 	}
-	
+
 	public DirectRemoteDebugLaunchDelegate() {
 		super();
 	}
@@ -76,10 +84,37 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 		return new DirectRemoteServicesFactory(version, this);
 	}
 
+	private void uploadSourceCodeToRemoteWorkSpace(ILaunchConfiguration config, IProgressMonitor monitor)
+			throws CoreException {
+		IProject projectHandle = CDebugUtils.getCProject(config).getProject();
+
+		IResource exportConfigResource = null;
+		IResource[] rootFiles = projectHandle.members();
+		for (int i = 0; i < rootFiles.length; i++) {
+			IResource r = rootFiles[i];
+			String name = r.getName();
+			if (name.endsWith(".rexpfd")) {
+				exportConfigResource = r;
+
+				break;
+			}
+		}
+
+		if (exportConfigResource == null) {
+			throw new RuntimeException("Not found export config file(*.rexpfd).");
+		}
+
+		DirectDebugRemoteFileExportActionDelegate action = new DirectDebugRemoteFileExportActionDelegate();
+		action.setMonitor(monitor);
+		DummyAction dummy = new DummyAction();
+		action.selectionChanged(dummy, new StructuredSelection(exportConfigResource));
+		action.run(dummy);
+	}
+
 	@Override
 	public void launch(ILaunchConfiguration config, String mode, ILaunch launch, IProgressMonitor monitor)
 			throws CoreException {
-		
+
 		// Need to initialize RSE
 		if (!RSECorePlugin.isInitComplete(RSECorePlugin.INIT_MODEL)) {
 			monitor.subTask(Messages.DirectRemoteDebugLaunchDelegate_1);
@@ -90,19 +125,10 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 						new Status(IStatus.ERROR, getPluginID(), IStatus.OK, e.getLocalizedMessage(), e));
 			}
 		}
-		
-		IProject projectHandle = ResourcesPlugin.getWorkspace().getRoot().getProject("travlsky2");
-		Boolean t = projectHandle.exists();
-		IFile descriptionFile = projectHandle.getFile("sync.rexpfd");
-		
-		Boolean isExist = descriptionFile.exists();
-		
-		DirectDebugRemoteFileExportActionDelegate action = new DirectDebugRemoteFileExportActionDelegate();
-		action.setMonitor(monitor);
-		DummyAction dummy = new DummyAction();
-		action.selectionChanged(dummy, new StructuredSelection(descriptionFile));
-		action.run(dummy);
-		
+
+		// First, let's upload source code to the remote workspace.
+		this.uploadSourceCodeToRemoteWorkSpace(config, monitor);
+
 		remoteProcess = null;
 		IPath gdbCommmand = LaunchUtils.getGDBPath(config);
 		String prelaunchCmd = config.getAttribute(IDirectRemoteConnectionConfigurationConstants.ATTR_PRERUN_COMMANDS,
@@ -143,7 +169,7 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 								gdbReady[0] = true;
 								lock.notifyAll();
 							}
-							
+
 							gdbInitialized = true;
 						}
 
@@ -156,14 +182,14 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 						 * = true; lock.notifyAll(); } working = false; break; }
 						 */
 					}
-					
+
 					String newContent = null;
 					if (buf.length() != 0) {
 						newContent = buf.toString();
 					} else {
 						newContent = "";
 					}
-					
+
 					// TODO: output to eclipse console.
 				}
 			});
@@ -268,6 +294,27 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 	@Override
 	protected IPath checkBinaryDetails(ILaunchConfiguration config) throws CoreException {
 		return null;
+	}
+
+	public static IProject getCurrentSelectedProject() {
+		// IProject project = null;
+		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject();
+		IWorkbench workBench = PlatformUI.getWorkbench();
+		IWorkbenchWindow workBenchWindow = workBench.getActiveWorkbenchWindow();
+
+		ISelectionService selectionService = workBenchWindow.getSelectionService();
+
+		ISelection selection = selectionService.getSelection();
+
+		if (selection instanceof IStructuredSelection) {
+			Object element = ((IStructuredSelection) selection).getFirstElement();
+
+			if (element instanceof IResource) {
+				project = ((IResource) element).getProject();
+			}
+		}
+
+		return project;
 	}
 
 }
