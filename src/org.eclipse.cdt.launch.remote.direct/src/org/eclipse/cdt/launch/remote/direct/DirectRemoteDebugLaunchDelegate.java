@@ -14,7 +14,11 @@ import org.eclipse.cdt.dsf.gdb.launching.GdbLaunch;
 import org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate;
 import org.eclipse.cdt.dsf.gdb.launching.LaunchUtils;
 import org.eclipse.cdt.dsf.service.DsfSession;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -26,13 +30,19 @@ import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.model.ISourceLocator;
 import org.eclipse.debug.core.sourcelookup.ISourceContainer;
+import org.eclipse.jface.action.Action;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.rse.core.RSECorePlugin;
+import org.eclipse.rse.core.subsystems.ISubSystem;
+import org.eclipse.rse.internal.importexport.RemoteImportExportUtil;
+import org.eclipse.rse.internal.synchronize.RSESyncUtils;
 import org.eclipse.rse.services.shells.HostShellProcessAdapter;
 import org.eclipse.rse.services.shells.IHostOutput;
 import org.eclipse.rse.services.shells.IHostShell;
 import org.eclipse.rse.services.shells.IHostShellChangeEvent;
 import org.eclipse.rse.services.shells.IHostShellOutputListener;
 import org.eclipse.rse.services.shells.IHostShellOutputReader;
+import org.eclipse.ui.IWorkbenchPage;
 
 public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 	private String version = ""; //$NON-NLS-1$
@@ -40,6 +50,15 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 	private Process remoteProcess = null;
 	private static String DIRECT_REMOTE_DEBUG_MAPPING = "DirectRemoteDebugMapping";
 
+	private class DummyAction extends Action {
+		/**
+		 * Constructor.
+		 */
+		public DummyAction() {
+			super();
+		}
+	}
+	
 	public DirectRemoteDebugLaunchDelegate() {
 		super();
 	}
@@ -60,7 +79,7 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 	@Override
 	public void launch(ILaunchConfiguration config, String mode, ILaunch launch, IProgressMonitor monitor)
 			throws CoreException {
-
+		
 		// Need to initialize RSE
 		if (!RSECorePlugin.isInitComplete(RSECorePlugin.INIT_MODEL)) {
 			monitor.subTask(Messages.DirectRemoteDebugLaunchDelegate_1);
@@ -71,6 +90,19 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 						new Status(IStatus.ERROR, getPluginID(), IStatus.OK, e.getLocalizedMessage(), e));
 			}
 		}
+		
+		IProject projectHandle = ResourcesPlugin.getWorkspace().getRoot().getProject("travlsky2");
+		Boolean t = projectHandle.exists();
+		IFile descriptionFile = projectHandle.getFile("sync.rexpfd");
+		
+		Boolean isExist = descriptionFile.exists();
+		
+		DirectDebugRemoteFileExportActionDelegate action = new DirectDebugRemoteFileExportActionDelegate();
+		action.setMonitor(monitor);
+		DummyAction dummy = new DummyAction();
+		action.selectionChanged(dummy, new StructuredSelection(descriptionFile));
+		action.run(dummy);
+		
 		remoteProcess = null;
 		IPath gdbCommmand = LaunchUtils.getGDBPath(config);
 		String prelaunchCmd = config.getAttribute(IDirectRemoteConnectionConfigurationConstants.ATTR_PRERUN_COMMANDS,

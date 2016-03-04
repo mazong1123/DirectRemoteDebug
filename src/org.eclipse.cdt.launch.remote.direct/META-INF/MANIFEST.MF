@@ -20,7 +20,9 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.rse.files.ui,
  org.eclipse.rse.subsystems.files.core,
  org.eclipse.rse.ui,
- org.eclipse.debug.ui;bundle-version="3.10.2"
+ org.eclipse.debug.ui;bundle-version="3.10.2",
+ org.eclipse.rse.importexport;bundle-version="1.2.300",
+ org.eclipse.rse;bundle-version="3.5.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Eclipse-AutoStart: true
 Bundle-Vendor: %Bundle-Vendor
