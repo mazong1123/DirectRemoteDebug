@@ -1,1 +1,6 @@
 *.class
+src/DirectRemoteDebugUpdateSite/artifacts.jar
+src/DirectRemoteDebugUpdateSite/artifacts.jar
+src/DirectRemoteDebugUpdateSite/features/org.eclipse.cdt.launch.remote.direct.feature_1.0.2.201603161358.jar
+*.class
+src/org.eclipse.cdt.launch.remote.direct/bin/org/eclipse/cdt/launch/remote/direct/DirectRemoteDebugLaunchDelegate$2.class

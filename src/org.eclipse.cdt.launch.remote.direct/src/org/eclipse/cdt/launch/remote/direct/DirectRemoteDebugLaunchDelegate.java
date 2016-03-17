@@ -100,15 +100,14 @@ public class DirectRemoteDebugLaunchDelegate extends GdbLaunchDelegate {
 			}
 		}
 
-		if (exportConfigResource == null) {
-			throw new RuntimeException("Not found export config file(*.rexpfd).");
+		if (exportConfigResource != null) {
+			//throw new RuntimeException("Not found export config file(*.rexpfd).");
+			DirectDebugRemoteFileExportActionDelegate action = new DirectDebugRemoteFileExportActionDelegate();
+			action.setMonitor(monitor);
+			DummyAction dummy = new DummyAction();
+			action.selectionChanged(dummy, new StructuredSelection(exportConfigResource));
+			action.run(dummy);
 		}
-
-		DirectDebugRemoteFileExportActionDelegate action = new DirectDebugRemoteFileExportActionDelegate();
-		action.setMonitor(monitor);
-		DummyAction dummy = new DummyAction();
-		action.selectionChanged(dummy, new StructuredSelection(exportConfigResource));
-		action.run(dummy);
 	}
 
 	@Override

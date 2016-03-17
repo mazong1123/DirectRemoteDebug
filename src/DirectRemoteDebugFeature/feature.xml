@@ -2,7 +2,7 @@
 <feature
       id="org.eclipse.cdt.launch.remote.direct.feature"
       label="Direct Remote Debug (C/C++)"
-      version="1.0.1.qualifier"
+      version="1.0.2.qualifier"
       provider-name="mazong1123">
 
    <description url="http://www.mazong1123.com">
